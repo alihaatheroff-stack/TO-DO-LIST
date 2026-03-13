@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        /* Environment banner at top */
+        #env-banner {
+            width: 100%;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        .banner-staging {
+            background-color: #f59e0b;
+            color: white;
+        }
+
+        .banner-production {
+            background-color: #10b981;
+            color: white;
+        }
+
+        body {
+            background-color: #f3f4f6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1f2937;
+            margin-bottom: 30px;
+            font-size: 2rem;
+        }
+
+        /* Add todo form */
+        .add-form {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .add-form h2 {
+            margin-bottom: 15px;
+            color: #374151;
+            font-size: 1.1rem;
+        }
+
+        .add-form input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 15px;
+            margin-bottom: 10px;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        .add-form input:focus {
+            border-color: #6366f1;
+        }
+
+        .btn-add {
+            width: 100%;
+            padding: 12px;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-add:hover {
+            background: #4f46e5;
+        }
+
+        /* Todo list */
+        .todo-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .todo-card {
+            background: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: transform 0.1s;
+        }
+
+        .todo-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .todo-card.completed {
+            opacity: 0.6;
+        }
+
+        .todo-card.completed .todo-title {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+
+        .todo-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: #6366f1;
+        }
+
+        .todo-content {
+            flex: 1;
+        }
+
+        .todo-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .todo-description {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 3px;
+        }
+
+        .todo-date {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .btn-delete {
+            background: #fee2e2;
+            color: #ef4444;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+
+        .btn-delete:hover {
+            background: #fecaca;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #9ca3af;
+            padding: 40px;
+            font-size: 16px;
+        }
+
+        .count-badge {
+            background: #6366f1;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Environment Banner -->
+    <div id="env-banner"></div>
+
+    <div class="container">
+        <h1>📝 Todo App</h1>
+
+        <!-- Add Todo Form -->
+        <div class="add-form">
+            <h2>Add New Todo</h2>
+            <input
+                type="text"
+                id="title-input"
+                placeholder="What needs to be done?"
+            />
+            <input
+                type="text"
+                id="desc-input"
+                placeholder="Description (optional)"
+            />
+            <button class="btn-add" onclick="addTodo()">
+                + Add Todo
+            </button>
+        </div>
+
+        <!-- Todo List -->
+        <h2 style="color:#374151; margin-bottom:15px;">
+            Your Todos
+            <span class="count-badge" id="count">0</span>
+        </h2>
+        <div class="todo-list" id="todo-list">
+            <div class="empty-state">No todos yet. Add one above!</div>
+        </div>
+    </div>
+
+    <script>
+        // API base URL — automatically uses current domain
+        const API = window.location.origin;
+
+        // Load environment and set banner
+        async function loadEnvironment() {
+            const res = await fetch(`${API}/health`);
+            const data = await res.json();
+            const banner = document.getElementById('env-banner');
+            const env = data.environment;
+
+            if (env === 'staging') {
+                banner.textContent = '⚠️ STAGING ENVIRONMENT — For testing only';
+                banner.className = 'banner-staging';
+            } else {
+                banner.textContent = '✅ PRODUCTION ENVIRONMENT — Live for real users';
+                banner.className = 'banner-production';
+            }
+        }
+
+        // Load all todos from API
+        async function loadTodos() {
+            const res = await fetch(`${API}/todos`);
+            const data = await res.json();
+            const list = document.getElementById('todo-list');
+            const count = document.getElementById('count');
+
+            count.textContent = data.count;
+
+            if (data.count === 0) {
+                list.innerHTML = '<div class="empty-state">No todos yet. Add one above!</div>';
+                return;
+            }
+
+            list.innerHTML = data.todos.map(todo => `
+                <div class="todo-card ${todo.completed ? 'completed' : ''}"
+                     id="todo-${todo.id}">
+                    <input
+                        type="checkbox"
+                        class="todo-checkbox"
+                        ${todo.completed ? 'checked' : ''}
+                        onchange="toggleTodo(${todo.id}, this.checked)"
+                    />
+                    <div class="todo-content">
+                        <div class="todo-title">${todo.title}</div>
+                        ${todo.description ?
+                            `<div class="todo-description">${todo.description}</div>`
+                            : ''}
+                        <div class="todo-date">Created: ${todo.created_at}</div>
+                    </div>
+                    <button class="btn-delete"
+                            onclick="deleteTodo(${todo.id})">
+                        Delete
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // Add new todo
+        async function addTodo() {
+            const title = document.getElementById('title-input').value.trim();
+            const description = document.getElementById('desc-input').value.trim();
+
+            if (!title) {
+                alert('Please enter a title!');
+                return;
+            }
+
+            await fetch(`${API}/todos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, description })
+            });
+
+            document.getElementById('title-input').value = '';
+            document.getElementById('desc-input').value = '';
+            loadTodos();
+        }
+
+        // Toggle complete/incomplete
+        async function toggleTodo(id, completed) {
+            await fetch(`${API}/todos/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ completed })
+            });
+            loadTodos();
+        }
+
+        // Delete todo
+        async function deleteTodo(id) {
+            await fetch(`${API}/todos/${id}`, {
+                method: 'DELETE'
+            });
+            loadTodos();
+        }
+
+        // Initialize
+        loadEnvironment();
+        loadTodos();
+    </script>
+
+</body>
+</html>
