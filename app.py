@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from typing import Optional
 import os
 import todo
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 app = FastAPI(
     title="Todo App",
@@ -11,6 +13,9 @@ app = FastAPI(
 )
 
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'production')
+
+# Serve static files (frontend)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 class CreateTodoRequest(BaseModel):
@@ -26,11 +31,7 @@ class UpdateTodoRequest(BaseModel):
 
 @app.get("/")
 def home():
-    return {
-        "message": "Todo App is running!",
-        "environment": ENVIRONMENT,
-        "docs": "/docs"
-    }
+    return FileResponse("static/index.html")
 
 
 @app.get("/health")
